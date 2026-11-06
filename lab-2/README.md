@@ -8,25 +8,21 @@ App
 └── main
     ├── Card (title="Тімлід")
     │   ├── Avatar (size={120})
-    │   └── p ("Андрій")
+    │   └── p ("Олена Коваль")
     └── Card (title="Команда")
         ├── Profile (key=1)
         │   ├── Avatar
-        │   ├── h3 ("Андрій")
-        │   └── p ("Тімлід, Fullstack")
+        │   ├── h3 ("Олена Коваль")
+        │   └── p ("Тімлідка, frontend")
         ├── Profile (key=2)
         │   ├── Avatar
-        │   ├── h3 ("Микола")
-        │   └── p ("Frontend Developer")
+        │   ├── h3 ("Андрій Мельник")
+        │   └── p ("Backend")
         ├── Profile (key=3)
         │   ├── Avatar
-        │   ├── h3 ("Артем")
-        │   └── p ("Backend Developer")
-        ├── Profile (key=4)
-        │   ├── Avatar
-        │   ├── h3 ("Віталік")
-        │   └── p ("UI/UX Designer")
-        └── Profile (key=5)
+        │   ├── h3 ("Ірина Бондар")
+        │   └── p ("UI/UX-дизайн")
+        └── Profile (key=4)
             ├── Avatar
-            ├── h3 ("Ярик")
-            └── p ("QA Engineer")
+            ├── h3 ("Максим Ткаченко")
+            └── p ("Тестування (QA)")

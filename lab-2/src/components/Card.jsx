@@ -4,5 +4,5 @@ export default function Card({ title, children }) {
       <h2>{title}</h2>
       <div className="card-content">{children}</div>
     </section>
-  )
+  );
 }
