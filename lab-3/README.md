@@ -2,15 +2,6 @@
 
 Стартовий проєкт лабораторної роботи № 3 курсу «Розробка вебзастосунків на React»: сторінка «Меню кав'ярні».
 
-## Команди
-
-`npm install` виконуйте в корені репозиторію `react-labs`, решту — у теці `lab-3/`:
-
-- `npm run dev`: dev-сервер на http://localhost:5173
-- `npm run lint`: ESLint
-- `npm run format:check`: перевірка форматування Prettier
-- `npm run build`: production-збірка в `dist/`
-
 ## 1. Ієрархія компонентів (Mermaid)
 
 ```mermaid
