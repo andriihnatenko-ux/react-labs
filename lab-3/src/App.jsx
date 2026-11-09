@@ -1,4 +1,4 @@
-import MenuCategory from './components/MenuCategory.jsx'
+import MenuTable from './components/MenuTable.jsx'
 import { menu } from './data.js'
 
 export default function App() {
@@ -17,17 +17,7 @@ export default function App() {
         </label>
       </search>
 
-      <table className="menu-table">
-        <thead>
-          <tr>
-            <th scope="col">Позиція</th>
-            <th scope="col">Ціна</th>
-          </tr>
-        </thead>
-        {menu.map((category) => (
-          <MenuCategory key={category.id} category={category} />
-        ))}
-      </table>
+      <MenuTable menu={menu} />
     </main>
   )
 }
