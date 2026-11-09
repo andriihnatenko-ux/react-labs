@@ -22,17 +22,19 @@ https://denysmatsevych.github.io/web-development-2026/react/labs/lab-4/
 
 ## Потік даних
 
-Нижче — ієрархія компонентів. Підпишіть на стрілках пропси й додайте
-пунктирні стрілки (§4.5): суцільна стрілка — пропси, які батьківський
-компонент передає дочірньому; пунктирна — дані, що повертаються вгору через
-функцію-обробник, або запис у сховище поза React. GitHub показує цей блок
-діаграмою; перевірити її до `git push` можна в https://mermaid.live/.
+Діаграма показує, як дані рухаються між компонентами. Суцільна стрілка —
+пропси, які батьківський компонент передає дочірньому; пунктирна — зворотний
+потік: виклик функції-обробника вгору або запис у сховище поза React.
+GitHub показує цей блок діаграмою; перевірити її до `git push` можна в
+https://mermaid.live/.
 
 ```mermaid
 flowchart TD
-  App --> SearchBar
-  App --> MenuTable
+  App -->|"filterText, inStockOnly"| SearchBar
+  App -->|"menu, filterText, inStockOnly"| MenuTable
   App --> CafeInfo
-  MenuTable --> MenuCategory["MenuCategory × 3"]
-  MenuCategory --> MenuItemRow["MenuItemRow × 4, 3, 3"]
+  MenuTable -->|category| MenuCategory["MenuCategory × 3"]
+  MenuCategory -->|item| MenuItemRow["MenuItemRow × 4, 3, 3"]
+  SearchBar -.->|"onFilterTextChange, onInStockOnlyChange"| App
+  App -.->|"menu.filterText, menu.inStockOnly"| LocalStorage[("localStorage")]
 ```
