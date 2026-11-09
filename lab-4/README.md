@@ -43,22 +43,11 @@ flowchart TD
 Стан фільтрів перенесено з `App` у `FilterableMenuTable` (§4.7). Під час
 введення тексту в поле пошуку рендерилися такі компоненти:
 
-**До:**
+**До:** `App`, `SearchBar`, `MenuTable`, `MenuCategory`, `MenuItemRow`,
+`CafeInfo`.
 
-- `App`
-- `SearchBar`
-- `MenuTable`
-- `MenuCategory` × 3
-- `MenuItemRow` × 10
-- `CafeInfo`
-
-**Після:**
-
-- `FilterableMenuTable`
-- `SearchBar`
-- `MenuTable`
-- `MenuCategory` × 3
-- `MenuItemRow` × 10
+**Після:** `FilterableMenuTable`, `SearchBar`, `MenuTable`, `MenuCategory`,
+`MenuItemRow`.
 
 `App` і `CafeInfo` більше не рендеряться, бо стан живе нижче в дереві й
 їхні пропси не змінюються.
