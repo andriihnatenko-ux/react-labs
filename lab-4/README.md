@@ -4,16 +4,14 @@
 React»: сторінка «Меню кав'ярні». Інструкція:
 https://denysmatsevych.github.io/web-development-2026/react/labs/lab-4/
 
-Компоненти вже винесено в теку `src/components/`, але сторінка поки лише
-показує дані: поле пошуку й прапорець нічого не роблять. Ви додасте стан
-(`useState`), щоб вони запрацювали, і збережете фільтри між
-перезавантаженнями сторінки (`useEffect`). Функція фільтрування лежить у
+Компоненти винесено в теку `src/components/`. Поле пошуку й прапорець
+фільтрують меню, а стан фільтрів (`useState`) зберігається в `localStorage`
+між перезавантаженнями сторінки (`useEffect`). Функція фільтрування лежить у
 `src/filterMenu.js`, дані меню — у `src/data.js`, стилі — у `src/index.css`.
 
 ## Команди
 
-`npm install` виконуйте в корені репозиторію `react-labs`, решту — у теці
-`lab-4/`:
+Усі команди виконуйте в теці `lab-4/`:
 
 - `npm run dev`: dev-сервер на http://localhost:5173
 - `npm run lint`: ESLint
@@ -30,11 +28,37 @@ https://mermaid.live/.
 
 ```mermaid
 flowchart TD
-  App -->|"filterText, inStockOnly"| SearchBar
-  App -->|"menu, filterText, inStockOnly"| MenuTable
+  App -->|menu| FilterableMenuTable
   App --> CafeInfo
+  FilterableMenuTable -->|"filterText, inStockOnly"| SearchBar
+  FilterableMenuTable -->|"menu, filterText, inStockOnly"| MenuTable
   MenuTable -->|category| MenuCategory["MenuCategory × 3"]
   MenuCategory -->|item| MenuItemRow["MenuItemRow × 4, 3, 3"]
-  SearchBar -.->|"onFilterTextChange, onInStockOnlyChange"| App
-  App -.->|"menu.filterText, menu.inStockOnly"| LocalStorage[("localStorage")]
+  SearchBar -.->|"onFilterTextChange, onInStockOnlyChange"| FilterableMenuTable
+  FilterableMenuTable -.->|"menu.filterText, menu.inStockOnly"| LocalStorage[("localStorage")]
 ```
+
+## Колокація стану
+
+Стан фільтрів перенесено з `App` у `FilterableMenuTable` (§4.7). Під час
+введення тексту в поле пошуку рендерилися такі компоненти:
+
+**До:**
+
+- `App`
+- `SearchBar`
+- `MenuTable`
+- `MenuCategory` × 3
+- `MenuItemRow` × 10
+- `CafeInfo`
+
+**Після:**
+
+- `FilterableMenuTable`
+- `SearchBar`
+- `MenuTable`
+- `MenuCategory` × 3
+- `MenuItemRow` × 10
+
+`App` і `CafeInfo` більше не рендеряться, бо стан живе нижче в дереві й
+їхні пропси не змінюються.
