@@ -1,11 +1,10 @@
-import { startTransition, useActionState } from 'react'
-import { Controller, useForm, useWatch } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
+import { startTransition, useActionState, useRef } from 'react'
+import { useFormik } from 'formik'
 import GuestsStepper from './GuestsStepper.jsx'
 import { sendBooking } from '../api.js'
 import { bookingSchema } from '../bookingSchema.js'
 
-const defaultValues = {
+const initialValues = {
   name: '',
   phone: '',
   date: '',
@@ -14,23 +13,22 @@ const defaultValues = {
   comment: '',
 }
 
-export default function BookingForm() {
-  const {
-    register,
-    control,
-    handleSubmit,
-    reset,
-    setFocus,
-    getValues,
-    trigger,
-    formState: { errors },
-  } = useForm({
-    resolver: zodResolver(bookingSchema),
-    defaultValues,
-    mode: 'onTouched',
-  })
+// Порядок полів для фокуса після невдалого надсилання.
+const fieldOrder = ['name', 'phone', 'date', 'time', 'guests', 'comment']
 
-  const comment = useWatch({ control, name: 'comment' })
+// Після надсилання Formik має показати помилки всіх полів, а не лише тих,
+// які людина вже залишила.
+const touchedAll = Object.fromEntries(fieldOrder.map((field) => [field, true]))
+
+export default function BookingForm() {
+  const nameRef = useRef(null)
+  const formik = useFormik({
+    initialValues,
+    validationSchema: bookingSchema,
+    validateOnBlur: true,
+    validateOnChange: true,
+    onSubmit: onValid,
+  })
   const [result, dispatch, isPending] = useActionState(bookTable, null)
 
   // Дія для useActionState: null — сигнал «Очистити»; інакше надсилаємо
@@ -38,13 +36,30 @@ export default function BookingForm() {
   async function bookTable(previousResult, booking) {
     if (booking === null) return null
     const response = await sendBooking(booking)
-    if (response.ok) startTransition(() => reset())
+    if (response.ok) startTransition(() => formik.resetForm())
     return response
   }
 
-  function onValid(data) {
+  function onValid(values) {
     if (isPending) return
-    startTransition(() => dispatch(data))
+    // cast застосовує trim зі схеми — так само, як це робив zodResolver.
+    startTransition(() => dispatch(bookingSchema.cast(values)))
+  }
+
+  // Formik не переносить фокус сам і не показує помилки полів, яких людина
+  // ще не торкалася: після перевірки позначаємо всі поля як «торкнуті»
+  // й ставимо курсор у перше поле з помилкою.
+  async function handleSubmit(e) {
+    e.preventDefault()
+    if (isPending) return
+    const errors = await formik.validateForm()
+    formik.setTouched(touchedAll)
+    const first = fieldOrder.find((field) => errors[field])
+    if (first) {
+      document.querySelector(`[name="${first}"]`)?.focus()
+      return
+    }
+    formik.handleSubmit()
   }
 
   function handleKeyDown(e) {
@@ -54,48 +69,52 @@ export default function BookingForm() {
   }
 
   function handleReset() {
-    setFocus('name') // до reset(): він прибирає посилання на поля
-    reset()
+    nameRef.current?.focus()
+    formik.resetForm()
     startTransition(() => dispatch(null))
   }
+
+  const showError = (field) =>
+    formik.touched[field] && formik.errors[field] ? formik.errors[field] : ''
 
   return (
     <form
       className="booking-form"
       noValidate
-      onSubmit={handleSubmit(onValid)}
+      onSubmit={handleSubmit}
       onKeyDown={handleKeyDown}
     >
       <div className="field">
         <label>
           Ім'я
           <input
-            {...register('name')}
+            {...formik.getFieldProps('name')}
+            ref={nameRef}
             autoComplete="name"
             required
-            aria-invalid={errors.name ? 'true' : 'false'}
+            aria-invalid={showError('name') ? 'true' : 'false'}
             aria-describedby="name-error"
           />
         </label>
         <p id="name-error" className="field-error">
-          {errors.name?.message}
+          {showError('name')}
         </p>
       </div>
       <div className="field">
         <label>
           Телефон
           <input
-            {...register('phone')}
+            {...formik.getFieldProps('phone')}
             type="tel"
             autoComplete="tel"
             placeholder="+380671234567"
             required
-            aria-invalid={errors.phone ? 'true' : 'false'}
+            aria-invalid={showError('phone') ? 'true' : 'false'}
             aria-describedby="phone-error"
           />
         </label>
         <p id="phone-error" className="field-error">
-          {errors.phone?.message}
+          {showError('phone')}
         </p>
       </div>
       <div className="row">
@@ -103,54 +122,47 @@ export default function BookingForm() {
           <label>
             Дата
             <input
-              {...register('date', {
-                onChange: () => {
-                  if (getValues('time')) trigger('time')
-                },
-              })}
+              {...formik.getFieldProps('date')}
               type="date"
               required
-              aria-invalid={errors.date ? 'true' : 'false'}
+              aria-invalid={showError('date') ? 'true' : 'false'}
               aria-describedby="date-error"
             />
           </label>
           <p id="date-error" className="field-error">
-            {errors.date?.message}
+            {showError('date')}
           </p>
         </div>
         <div className="field">
           <label>
             Час
             <input
-              {...register('time')}
+              {...formik.getFieldProps('time')}
               type="time"
               required
-              aria-invalid={errors.time ? 'true' : 'false'}
+              aria-invalid={showError('time') ? 'true' : 'false'}
               aria-describedby="time-error"
             />
           </label>
           <p id="time-error" className="field-error">
-            {errors.time?.message}
+            {showError('time')}
           </p>
         </div>
       </div>
-      <Controller
-        name="guests"
-        control={control}
-        render={({ field }) => (
-          <GuestsStepper value={field.value} onChange={field.onChange} />
-        )}
+      <GuestsStepper
+        value={formik.values.guests}
+        onChange={(value) => formik.setFieldValue('guests', value)}
       />
       <label>
         Коментар
         <textarea
-          {...register('comment')}
+          {...formik.getFieldProps('comment')}
           maxLength={200}
           aria-describedby="comment-counter"
         />
       </label>
       <p id="comment-counter" className="counter">
-        {comment.length} / 200
+        {formik.values.comment.length} / 200
       </p>
       <div className="actions">
         <button type="submit" aria-disabled={isPending}>
