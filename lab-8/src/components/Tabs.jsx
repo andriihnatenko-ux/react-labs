@@ -16,6 +16,70 @@
  *
  * Вимоги — у тестах tests/Tabs.children.test.jsx і tests/Tabs.a11y.test.jsx.
  */
-export default function Tabs() {
-  throw new Error('Not implemented: Tabs')
+import { createContext, use, useMemo, useState } from 'react'
+
+const TabsContext = createContext(null)
+
+function useTabsContext(componentName) {
+  const context = use(TabsContext)
+  if (context === null) {
+    throw new Error(`${componentName} must be rendered inside <Tabs>`)
+  }
+  return context
 }
+
+function List({ children, ...props }) {
+  return (
+    <div className="tab-list" {...props}>
+      {children}
+    </div>
+  )
+}
+
+function Tab({ value, children, onClick, ...props }) {
+  const { selectedValue, select } = useTabsContext('Tabs.Tab')
+  const isSelected = selectedValue === value
+
+  return (
+    <button
+      type="button"
+      className={isSelected ? 'active' : ''}
+      {...props}
+      onClick={(event) => {
+        onClick?.(event)
+        select(value)
+      }}
+    >
+      {children}
+    </button>
+  )
+}
+
+function Panel({ value, children, ...props }) {
+  const { selectedValue } = useTabsContext('Tabs.Panel')
+  const isSelected = selectedValue === value
+
+  return (
+    <div hidden={!isSelected} {...props}>
+      {children}
+    </div>
+  )
+}
+
+export default function Tabs({ defaultValue, children }) {
+  const [selectedValue, setSelectedValue] = useState(defaultValue)
+  const contextValue = useMemo(
+    () => ({ selectedValue, select: setSelectedValue }),
+    [selectedValue],
+  )
+
+  return (
+    <TabsContext value={contextValue}>
+      <div className="tabs">{children}</div>
+    </TabsContext>
+  )
+}
+
+Tabs.List = List
+Tabs.Tab = Tab
+Tabs.Panel = Panel
