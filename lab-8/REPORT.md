@@ -4,11 +4,15 @@
 
 GitHub repository: https://github.com/andriihnatenko-ux/react-labs/tree/main/lab-8
 
-Vercel: <!-- TODO: вставити адресу після деплою, Root Directory — lab-8 -->
+Vercel: https://react-labs-u11d.vercel.app/ (Root Directory — `lab-8`)
 
 ## 1. Сторінка
 
 ![Сторінка кави: відкрита вкладка «Відгуки (10)», у кошику один товар](report/01-page.jpeg)
+
+Знімок зроблено на задеплоєній версії. Там перевірено, що вкладки мають ролі
+й перемикаються, «Додати в кошик» пише `[analytics] add_to_cart` у Console, а
+лічильник показує «У кошику: 1».
 
 ## 2. Що було не так і що змінено
 
