@@ -10,9 +10,28 @@
  *     Додати в кошик
  *   </AddToCartButton>
  *
- * Поки що повертає `Component` без змін. Вимоги — у тестах
- * tests/withAnalytics.test.jsx.
+ * `analyticsData` — проп самої обгортки: він іде в `track`, але не в DOM.
+ * Решта props, зокрема `ref` (у React 19 це звичайний проп), доходять до
+ * обгорнутого компонента.
  */
-export function withAnalytics(Component) {
-  return Component
+import { track } from '../analytics.js'
+
+export function withAnalytics(Component, event) {
+  function WithAnalytics({ analyticsData, ...props }) {
+    const { onClick } = props
+
+    return (
+      <Component
+        {...props}
+        onClick={(clickEvent) => {
+          track(event, analyticsData)
+          onClick?.(clickEvent)
+        }}
+      />
+    )
+  }
+
+  WithAnalytics.displayName = `withAnalytics(${Component.displayName ?? Component.name})`
+
+  return WithAnalytics
 }
