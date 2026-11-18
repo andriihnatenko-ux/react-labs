@@ -1,4 +1,4 @@
-import { withAnalytics } from '../../../shared/hoc/withAnalytics.jsx'
+import { withAnalytics } from '../../../shared/lib/withAnalytics.jsx'
 import { formatTime } from '../utils/formatTime.js'
 import Button from '../../../shared/components/Button.jsx'
 
