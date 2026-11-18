@@ -1,30 +1,25 @@
-// Кошик: масив рядків { id, name, price, quantity } у localStorage. Назву й
-// ціну рядок запам'ятовує в момент додавання. Компоненти читають кошик через
-// хук useCart, а він — через subscribe і getLines.
+// state: рядки кошика { id, name, price, quantity }. Назву й ціну рядок
+// запам'ятовує в момент додавання. Компоненти читають кошик через хук
+// useCart, а він — через subscribe і getLines.
 
-const STORAGE_KEY = 'cart'
+import {
+  parseCartLines,
+  readCartJson,
+  writeCartLines,
+} from '../data/cartStorage.js'
+
 const listeners = new Set()
 let storedJson = null
 let lines = []
-
-function parse(json) {
-  if (json === null) return []
-  try {
-    const value = JSON.parse(json)
-    return Array.isArray(value) ? value : []
-  } catch {
-    return []
-  }
-}
 
 // Читає localStorage під час кожного виклику, але повертає той самий масив,
 // поки збережений рядок не змінився: useSyncExternalStore вимагає саме
 // цього, інакше компонент рендерився б без кінця.
 export function getLines() {
-  const json = localStorage.getItem(STORAGE_KEY)
+  const json = readCartJson()
   if (json !== storedJson) {
     storedJson = json
-    lines = parse(json)
+    lines = parseCartLines(json)
   }
   return lines
 }
@@ -37,7 +32,7 @@ export function subscribe(listener) {
 }
 
 function save(nextLines) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(nextLines))
+  writeCartLines(nextLines)
   listeners.forEach((listener) => listener())
 }
 
