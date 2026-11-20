@@ -1,4 +1,5 @@
 import { useReducer, useState } from 'react'
+import HistoryButtons from './components/HistoryButtons.jsx'
 import OrderBoard from './components/OrderBoard.jsx'
 import OrderComposer from './components/OrderComposer.jsx'
 import OrderDetails from './components/OrderDetails.jsx'
@@ -8,11 +9,17 @@ import {
   queueReducer,
   selectOrder,
 } from './model/queueReducer.js'
+import { createHistory, withUndo } from './model/withUndo.js'
+
+// withUndo створюємо один раз на модуль, а не на кожен рендер: інакше React
+// щоразу отримував би нову функцію-ред'юсер.
+const undoableQueueReducer = withUndo(queueReducer)
 
 export default function App() {
-  const [queue, dispatch] = useReducer(queueReducer, null, () =>
-    createInitialState(loadOrders()),
+  const [history, dispatch] = useReducer(undoableQueueReducer, null, () =>
+    createHistory(createInitialState(loadOrders())),
   )
+  const queue = history.present
   // id замовлення, відкритого в «Деталях», або null.
   const [openedOrderId, setOpenedOrderId] = useState(null)
   const openedOrder = openedOrderId
@@ -46,6 +53,12 @@ export default function App() {
             order={openedOrder}
             dispatch={dispatch}
             onClose={() => setOpenedOrderId(null)}
+          />
+          <HistoryButtons
+            canUndo={history.past.length > 0}
+            canRedo={history.future.length > 0}
+            onUndo={() => dispatch({ type: 'undo' })}
+            onRedo={() => dispatch({ type: 'redo' })}
           />
           <OrderBoard
             queue={queue}
