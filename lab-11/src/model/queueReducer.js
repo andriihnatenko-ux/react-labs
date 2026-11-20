@@ -1,10 +1,17 @@
 /**
- * Ред'юсер черги замовлень. Його написав колега; у нього черга працює.
+ * Ред'юсер черги замовлень.
  *
- * Стан: { orders: [...] }. Кожне замовлення — як у src/data/orders.js:
- *   { id, number, status, customer: { id, name }, items: [...] }
- * status — колонка на дошці: 'new' («Нові»), 'brewing' («Готуються»),
- * 'ready' («Готові») або 'served' («Видані»).
+ * Стан нормалізований: кожен об'єкт зберігається один раз, а замовлення
+ * посилається на гостя через customerId.
+ *   {
+ *     orders: { byId: { o41: { id, number, status, customerId, items }, … },
+ *               ids: ['o41', …] },
+ *     customers: { byId: { c1: { id, name }, … }, ids: ['c1', …] },
+ *     lastNumber,
+ *   }
+ * ids зберігає порядок надходження. status — колонка на дошці: 'new'
+ * («Нові»), 'brewing' («Готуються»), 'ready' («Готові») або 'served'
+ * («Видані»). Напої лишаються всередині замовлення.
  *
  * Дії — події на сторінці:
  *   { type: 'order_placed', order: { id, customer: { id, name }, items } }
@@ -29,67 +36,126 @@ const nextStatus = { new: 'brewing', brewing: 'ready', ready: 'served' }
 
 /** Початковий стан черги з вкладених замовлень, як їх повертає loadOrders(). */
 export function createInitialState(orders) {
-  return {
-    orders,
+  const ordersById = {}
+  const orderIds = []
+  const customersById = {}
+  const customerIds = []
+  let lastNumber = 0
+
+  for (const { customer, ...order } of orders) {
+    ordersById[order.id] = { ...order, customerId: customer.id }
+    orderIds.push(order.id)
+
+    if (!customersById[customer.id]) {
+      customersById[customer.id] = { ...customer }
+      customerIds.push(customer.id)
+    }
+
     // Номери лише ростуть, а номер скасованого замовлення новому не
     // дістається, тому останній номер живе в стані, а не в модулі.
-    lastNumber: Math.max(...orders.map((order) => order.number)),
+    lastNumber = Math.max(lastNumber, order.number)
+  }
+
+  return {
+    orders: { byId: ordersById, ids: orderIds },
+    customers: { byId: customersById, ids: customerIds },
+    lastNumber,
   }
 }
 
 export function queueReducer(state, action) {
   switch (action.type) {
     case 'order_placed': {
+      const { order } = action
       const number = state.lastNumber + 1
-      const order = {
-        ...action.order,
-        number,
-        status: 'new',
-        items: action.order.items.map((item) => ({ ...item, done: false })),
-      }
-      return { ...state, lastNumber: number, orders: [...state.orders, order] }
-    }
-    case 'item_toggled': {
+      const customer = order.customer
+      const customerExists = Boolean(state.customers.byId[customer.id])
+
       return {
         ...state,
-        orders: state.orders.map((order) =>
-          order.id === action.orderId
-            ? {
-                ...order,
-                items: order.items.map((item) =>
-                  item.id === action.itemId
-                    ? { ...item, done: !item.done }
-                    : item,
-                ),
-              }
-            : order,
-        ),
+        lastNumber: number,
+        orders: {
+          byId: {
+            ...state.orders.byId,
+            [order.id]: {
+              id: order.id,
+              number,
+              status: 'new',
+              customerId: customer.id,
+              items: order.items.map((item) => ({ ...item, done: false })),
+            },
+          },
+          ids: [...state.orders.ids, order.id],
+        },
+        customers: customerExists
+          ? state.customers
+          : {
+              byId: {
+                ...state.customers.byId,
+                [customer.id]: { ...customer },
+              },
+              ids: [...state.customers.ids, customer.id],
+            },
+      }
+    }
+    case 'item_toggled': {
+      const order = state.orders.byId[action.orderId]
+      return {
+        ...state,
+        orders: {
+          ...state.orders,
+          byId: {
+            ...state.orders.byId,
+            [action.orderId]: {
+              ...order,
+              items: order.items.map((item) =>
+                item.id === action.itemId
+                  ? { ...item, done: !item.done }
+                  : item,
+              ),
+            },
+          },
+        },
       }
     }
     case 'order_advanced': {
+      const order = state.orders.byId[action.orderId]
       return {
         ...state,
-        orders: state.orders.map((order) =>
-          order.id === action.orderId
-            ? { ...order, status: nextStatus[order.status] }
-            : order,
-        ),
+        orders: {
+          ...state.orders,
+          byId: {
+            ...state.orders.byId,
+            [action.orderId]: {
+              ...order,
+              status: nextStatus[order.status],
+            },
+          },
+        },
       }
     }
     case 'order_cancelled': {
+      const byId = { ...state.orders.byId }
+      delete byId[action.orderId]
       return {
         ...state,
-        orders: state.orders.filter((order) => order.id !== action.orderId),
+        orders: {
+          byId,
+          ids: state.orders.ids.filter((id) => id !== action.orderId),
+        },
       }
     }
     case 'customer_renamed': {
+      const customer = state.customers.byId[action.customerId]
       return {
         ...state,
-        orders: state.orders.map((order) =>
-          order.customer.id === action.customerId
-            ? { ...order, customer: { ...order.customer, name: action.name } }
-            : order,
-        ),
+        customers: {
+          ...state.customers,
+          byId: {
+            ...state.customers.byId,
+            [action.customerId]: { ...customer, name: action.name },
+          },
+        },
       }
     }
     default:
@@ -102,10 +168,18 @@ export function queueReducer(state, action) {
  * гостем і напоями.
  */
 export function selectColumn(state, status) {
-  return state.orders.filter((order) => order.status === status)
+  return state.orders.ids
+    .map((id) => state.orders.byId[id])
+    .filter((order) => order.status === status)
+    .map((order) => withCustomer(state, order))
 }
 
 /** Замовлення за id разом із гостем і напоями; undefined, якщо його немає. */
 export function selectOrder(state, id) {
-  return state.orders.find((order) => order.id === id)
+  const order = state.orders.byId[id]
+  return order ? withCustomer(state, order) : undefined
+}
+
+function withCustomer(state, order) {
+  return { ...order, customer: state.customers.byId[order.customerId] }
 }
