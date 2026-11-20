@@ -5,15 +5,11 @@ Vercel: https://react-labs-8jlk.vercel.app/
 
 1. Тести
 
-[СКРІНШОТ: npx vitest run у теці lab-11]
-
-Результат: Test Files 8 passed (8), Tests 40 passed (40).
+`npx vitest run` у теці lab-11: Test Files 8 passed (8), Tests 40 passed (40).
 
 2. Перевірки
 
-[СКРІНШОТ: npm run lint, npm run format:check, npm run build]
-
-Результати:
+`npm run lint`, `npm run format:check`, `npm run build`:
 
 - npm run lint — без помилок і попереджень;
 - npm run format:check — All matched files use Prettier code style!;
