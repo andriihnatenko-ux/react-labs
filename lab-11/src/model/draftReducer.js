@@ -1,3 +1,4 @@
+import { produce } from 'immer'
 import { defaultMilk } from '../data/menu.js'
 
 /**
@@ -37,62 +38,51 @@ export const emptyDraft = Object.freeze({
  *
  * Невідома дія — помилка, у тексті якої є назва дії.
  *
- * Поки що кидає помилку. Вимоги — у тестах tests/draftReducer.test.js і
+ * Immer будує нову чернетку зі змін, які ред'юсер робить у draft, і копіює
+ * лише змінений шлях. Вимоги — у тестах tests/draftReducer.test.js і
  * tests/OrderComposer.test.jsx.
  */
-export function draftReducer(state, action) {
+export const draftReducer = produce((draft, action) => {
   switch (action.type) {
     case 'customer_changed':
-      return { ...state, customerName: action.name }
+      draft.customerName = action.name
+      break
     case 'drink_added':
-      return {
-        ...state,
-        items: [
-          ...state.items,
-          {
-            id: action.id,
-            drink: action.drink,
-            size: 'M',
-            milk: defaultMilk(action.drink),
-            syrups: [],
-          },
-        ],
-      }
+      draft.items.push({
+        id: action.id,
+        drink: action.drink,
+        size: 'M',
+        milk: defaultMilk(action.drink),
+        syrups: [],
+      })
+      break
     case 'size_chosen':
-      return changeItem(state, action.itemId, (item) => ({
-        ...item,
-        size: action.size,
-      }))
+      itemById(draft, action.itemId).size = action.size
+      break
     case 'milk_chosen':
-      return changeItem(state, action.itemId, (item) => ({
-        ...item,
-        milk: action.milk,
-      }))
-    case 'syrup_toggled':
-      return changeItem(state, action.itemId, (item) => ({
-        ...item,
-        syrups: item.syrups.includes(action.syrup)
-          ? item.syrups.filter((syrup) => syrup !== action.syrup)
-          : [...item.syrups, action.syrup],
-      }))
-    case 'item_removed':
-      return {
-        ...state,
-        items: state.items.filter((item) => item.id !== action.itemId),
-      }
+      itemById(draft, action.itemId).milk = action.milk
+      break
+    case 'syrup_toggled': {
+      const item = itemById(draft, action.itemId)
+      const index = item.syrups.indexOf(action.syrup)
+      if (index === -1) item.syrups.push(action.syrup)
+      else item.syrups.splice(index, 1)
+      break
+    }
+    case 'item_removed': {
+      const index = draft.items.findIndex((item) => item.id === action.itemId)
+      if (index !== -1) draft.items.splice(index, 1)
+      break
+    }
     case 'draft_cleared':
-      return { ...emptyDraft, items: [] }
+      draft.customerName = ''
+      draft.items = []
+      break
     default:
       throw new Error(`Unknown action: ${action.type}`)
   }
-}
+})
 
-/** Нова чернетка, у якій змінено лише один напій. */
-function changeItem(state, itemId, change) {
-  return {
-    ...state,
-    items: state.items.map((item) =>
-      item.id === itemId ? change(item) : item,
-    ),
-  }
+function itemById(draft, itemId) {
+  return draft.items.find((item) => item.id === itemId)
 }
